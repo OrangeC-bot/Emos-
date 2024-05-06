@@ -134,10 +134,94 @@
 
     <insert id="insert" parameterType="com.example.emos.api.db.pojo.TbUser">
         INSERT INTO tb_user
+        SET
+        <if test="username!=null">
+            username = #{username},
+        </if>
+        <if test="password!=null">
+            password = HEX(AES_ENCRYPT(#{password},#{username})),
+        </if>
+        <if test="openId!=null">
+            open_id = #{openId},
+        </if>
+        <if test="nickname!=null">
+            nickname = #{nickname},
+        </if>
+        <if test="photo!=null">
+            photo = #{photo},
+        </if>
+        <if test="name!=null">
+            name = #{name},
+        </if>
+        <if test="sex!=null">
+            sex = #{sex},
+        </if>
+        <if test="tel!=null">
+            tel = #{tel},
+        </if>
+        <if test="email!=null">
+            email=#{email},
+        </if>
+        <if test="hiredate!=null">
+            hiredate = #{hiredate},
+        </if>
+        role = #{role},
+        <if test="root!=null">
+            root = #{root},
+        </if>
+        <if test="deptId!=null">
+            dept_id = #{deptId},
+        </if>
+        status = #{status}
     </insert>
     <update id="updatePassword" parameterType="HashMap">
         UPDATE tb_user
         SET password = HEX(AES_ENCRYPT(#{password}, username))
         WHERE id = #{userId}
     </update>
+    <update id="update" parameterType="com.example.emos.api.db.pojo.TbUser">
+        UPDATE tb_user
+        SET
+        <if test="username != null and password != null">
+            username = #{username},
+            password = HEX(AES_ENCRYPT(#{password},#{username})),
+        </if>
+        <if test="name != null">
+            name = #{name},
+        </if>
+        <if test="sex != null">
+            sex = #{sex},
+        </if>
+        <if test="tel != null">
+            tel = #{tel},
+        </if>
+        <if test="email != null">
+            email = #{email},
+        </if>
+        <if test="hiredate != null">
+            hiredate = #{hiredate},
+        </if>
+        <if test="role != null">
+            role = #{role},
+        </if>
+        <if test="root != null">
+            root = #{root},
+        </if>
+        <if test="deptId != null">
+            dept_id = #{deptId},
+        </if>
+        <if test="status != null">
+            status = #{status},
+        </if>
+        id = id
+        WHERE id = #{userId}
+    </update>
+    <delete id="deleteUserByIds">
+        DELETE FROM tb_user
+        WHERE id IN
+        <foreach collection="array" open="(" separator="," close=")" item="userId">
+            #{userId}
+        </foreach>
+        AND root = FALSE
+    </delete>
 </mapper>

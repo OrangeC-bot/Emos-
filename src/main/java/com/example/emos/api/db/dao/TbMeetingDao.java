@@ -10,4 +10,6 @@ import java.util.HashMap;
 public interface TbMeetingDao {
     public boolean searchMeetingMembersInSameDept(String uuid);
     public HashMap searchMeetingById(HashMap param);
+    public ArrayList<HashMap> searchOfflineMeetingByPage(HashMap param);
+    public long searchOfflineMeetingCount(HashMap param);
 }

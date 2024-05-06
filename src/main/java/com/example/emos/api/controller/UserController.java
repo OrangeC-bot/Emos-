@@ -4,10 +4,12 @@ import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.annotation.SaMode;
 import cn.dev33.satoken.stp.StpUtil;
+import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.json.JSONUtil;
 import com.example.emos.api.common.util.PageUtils;
 import com.example.emos.api.common.util.R;
 import com.example.emos.api.controller.form.*;
+import com.example.emos.api.db.pojo.TbUser;
 import com.example.emos.api.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,9 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Set;
+import java.util.*;
 
 @RestController
 @RequestMapping("/user")
@@ -142,4 +142,48 @@ public class  UserController {
         return R.ok().put("page",pageUtils);
     }
 
+    @PostMapping("/insert")
+    @Operation(summary = "新增用户")
+    @SaCheckPermission(value = {"ROOT", "USER:INSERT"}, mode = SaMode.OR)
+    public R insert(@Valid @RequestBody InsertUserForm form) {
+        TbUser user = JSONUtil.parse(form).toBean(TbUser.class);
+        user.setStatus((byte) 1);
+        user.setRole(JSONUtil.parseArray(form.getRole()).toString());
+        user.setCreateTime(new Date());
+        int rows = userService.insert(user);
+        return R.ok().put("rows",rows);
+    }
+
+    @PostMapping("/update")
+    @Operation(summary = "修改用户信息")
+    @SaCheckPermission(value = {"ROOT", "USER:UPDATE"}, mode = SaMode.OR)
+    public R update(@Valid @RequestBody UpdateUserForm form) {
+        HashMap param = JSONUtil.parse(form).toBean(HashMap.class);
+        param.replace("role",JSONUtil.parseArray(form.getRole()).toString());
+        // 判断当前要修改的用户是否是root用户
+        int rows = userService.update(param);
+        if (rows == 1) {
+            StpUtil.logoutByLoginId(form.getUserId());
+        }
+        return R.ok().put("rows", rows);
+    }
+
+    @PostMapping("/deleteUserByIds")
+    @Operation(summary = "删除用户信息")
+    @SaCheckPermission(value = {"ROOT", "USER:DELETE"}, mode = SaMode.OR)
+    public R deleteUserByIds(@Valid @RequestBody DeleteUserByIdsForm form) {
+        String userId = StpUtil.getLoginIdAsString();
+        if (ArrayUtil.contains(form.getIds(), userId)) {
+            return R.error("您不能删除自己的帐户！");
+        }
+
+        int rows = userService.deleteUserByIds(form.getIds());
+        if (rows > 0) {
+            //把被删除的用户踢下线
+            for (Integer id : form.getIds()) {
+                StpUtil.logoutByLoginId(id);
+            }
+        }
+        return R.ok().put("rows", rows);
+    }
 }
