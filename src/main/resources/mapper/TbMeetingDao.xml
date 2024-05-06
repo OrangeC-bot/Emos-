@@ -27,42 +27,56 @@
         JOIN tb_user u ON m.creator_id = u.id
         WHERE m.id =#{id} AND u.status = 1
     </select>
-    <select id="searchOfflineMeetingByPage" parameterType="hashmap" resultType="hashmap">
-        SELECT
-        mr.name,
-        tmp.meeting
-        FROM tb_meeting_room mr LEFT JOIN
-        (SELECT
-        place,
+    <select id="searchOfflineMeetingByPage" parameterType="HashMap" resultType="HashMap">
+        SELECT mr.name, temp.meeting FROM tb_meeting_room mr LEFT JOIN  (
+        SELECT place,
         CONCAT(
-        '[',
+        "[",
         GROUP_CONCAT(
-        JSON_OBJECT('start', DATE_FORMAT(start, '%H:%i'),
-        'end', DATE_FORMAT(end, '%H:%i'),
+        JSON_OBJECT('start', DATE_FORMAT(start,'%H:%i'),
+        'end', DATE_FORMAT(end,'%H:%i'),
         'status', `status`,
-        'time', ROUND(TIMESTAMPDIFF(MINUTE, start, end) / 30))
+        'time', ROUND(timestampdiff(MINUTE,CONCAT(date," ",start),CONCAT(date," ",end))/30)
+        )
         ),
-        ']')AS meeting
+        "]") AS meeting
         FROM tb_meeting
-        WHERE
-        type = 2 AND
-        `status` != 2 AND
-        date = #{date}
-        <if test="mold == '我的会议'">
+        WHERE type = 2 AND `status` != 2 AND date = #{date}
+        <if test="mold=='我的会议'">
             AND JSON_CONTAINS(members, CAST(#{userId} AS CHAR))
         </if>
-        GROUP BY place) AS tmp
-        ON mr.name = tmp.place
-        WHERE mr.status = 1
-        <if test="name != null">
-            AND mr.name = #{name}
-        </if>
+        GROUP BY place) temp ON mr.name=temp.place
+        WHERE mr.`status`=1
         LIMIT #{start}, #{length}
     </select>
     <select id="searchOfflineMeetingCount" parameterType="HashMap" resultType="long">
         SELECT COUNT(*)
         FROM tb_meeting_room
-        WHERE status = 1
+        WHERE status=1
     </select>
-
+    <update id="updateMeetingInstanceId" parameterType="hashmap">
+        UPDATE tb_meeting SET instance_id = #{instanceId} WHERE uuid = #{uuid}
+    </update>
+    <insert id="insert" parameterType="com.example.emos.api.db.pojo.TbMeeting">
+        INSERT INTO tb_meeting
+        SET title = #{title},
+        <if test="uuid!=null">
+            uuid = #{uuid},
+        </if>
+        `date` = #{date},
+        creator_id = #{creatorId},
+        <if test="place != null">
+            place = #{place},
+        </if>
+        `start` = #{start},
+        `end` = #{end},
+        `type` = #{type},
+        members = #{members},
+        `desc` = #{desc},
+        <if test="instanceId != null">
+            instance_id = #{instanceId},
+        </if>
+        `status` = #{status},
+        create_time = NOW()
+    </insert>
 </mapper>

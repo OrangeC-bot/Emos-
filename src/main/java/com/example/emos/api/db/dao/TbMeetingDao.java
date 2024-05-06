@@ -12,4 +12,6 @@ public interface TbMeetingDao {
     public HashMap searchMeetingById(HashMap param);
     public ArrayList<HashMap> searchOfflineMeetingByPage(HashMap param);
     public long searchOfflineMeetingCount(HashMap param);
+    public int updateMeetingInstanceId(HashMap param);
+    public int insert(TbMeeting meeting);
 }
