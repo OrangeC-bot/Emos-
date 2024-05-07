@@ -54,9 +54,62 @@
         FROM tb_meeting_room
         WHERE status=1
     </select>
+    <select id="searchOfflineMeetingInWeek" parameterType="HashMap" resultType="HashMap">
+        SELECT id,
+               title,
+               DATE_FORMAT(`date`,"%m/%d") AS `date`,
+               DATE_FORMAT(start,'%H:%i') AS `start`,
+               ROUND(timestampdiff(MINUTE,CONCAT(`date`," ",`start`),CONCAT(`date`," ",`end`))/30) AS time,
+               uuid,
+               instance_id AS instanceId,
+               IF(creator_id=#{userId},"true","false") AS isCreator,
+                `status`
+        FROM tb_meeting
+        WHERE type = 2
+        AND place = #{place}
+        AND `status` != 2
+        AND date BETWEEN #{startDate} AND #{endDate}
+        <if test="mold=='我的会议'">
+            AND JSON_CONTAINS(members, CAST(#{userId} AS CHAR ))
+        </if>
+    </select>
+    <select id="searchMeetingInfo" parameterType="long" resultType="HashMap">
+        SELECT m.title,
+               m.date,
+               m.place,
+               DATE_FORMAT(m.`start`,'%H:%i') AS `start`,
+               DATE_FORMAT(m.`end`,'%H:%i') AS `end`,
+               m.status,
+               CONCAT( "[", GROUP_CONCAT( JSON_OBJECT ( "name", u.name, "photo", u.photo ) SEPARATOR "," ), "]" ) AS members
+        FROM tb_meeting m
+        LEFT JOIN tb_user u ON JSON_CONTAINS (m.members, CONVERT (u.id, CHAR ))
+        WHERE m.id = #{id} AND u.status=1
+    </select>
+    <select id="searchCurrentMeetingInfo" parameterType="long" resultType="HashMap">
+        SELECT m.title,
+               m.date,
+               m.place,
+               DATE_FORMAT(m.`start`,'%H:%i') AS `start`,
+               DATE_FORMAT(m.`end`,'%H:%i') AS `end`,
+               m.status,
+               (
+                   SELECT CONCAT( "[", GROUP_CONCAT( JSON_OBJECT ( "name", u.name, "photo", u.photo ) SEPARATOR "," ), "]" )
+                   FROM tb_user u WHERE JSON_CONTAINS ( m.present, CONVERT ( u.id, CHAR ) )
+               ) AS  present,
+               (
+                   SELECT CONCAT( "[", GROUP_CONCAT( JSON_OBJECT ( "name", u.name, "photo", u.photo ) SEPARATOR "," ), "]" )
+                   FROM tb_user u WHERE JSON_CONTAINS ( m.unpresent, CONVERT ( u.id, CHAR ) )
+               ) AS  unpresent
+        FROM tb_meeting m
+        WHERE m.id = #{id}
+    </select>
     <update id="updateMeetingInstanceId" parameterType="hashmap">
         UPDATE tb_meeting SET instance_id = #{instanceId} WHERE uuid = #{uuid}
     </update>
+    <delete id="deleteMeetingApplication" parameterType="HashMap">
+        DELETE FROM tb_meeting
+        WHERE id=${id} AND creator_id=#{creatorId}
+    </delete>
     <insert id="insert" parameterType="com.example.emos.api.db.pojo.TbMeeting">
         INSERT INTO tb_meeting
         SET title = #{title},
