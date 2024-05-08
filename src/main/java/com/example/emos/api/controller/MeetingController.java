@@ -231,14 +231,14 @@ public class MeetingController {
         //判断查询的会议是否存在（会议状态为未进行或已开始）
         boolean bool = meetingService.searchCanCheckinMeeting(param);
         //如果会议状态符合未进行和已开始,则返回true，执行以下判断条件,返回更新的参会签到条数
-        if(bool){
+//        if(bool){
 
-            int rows = meetingService.updateMeetingPresent(param);
-            return R.ok().put("rows", rows);
+        int rows = meetingService.updateMeetingPresent(param);
+        return R.ok().put("rows", rows);
 
-        }
+//        }
         //否则返回0,表示更新人数为0，更新失败
-        return R.ok().put("rows", 0);
+//        return R.ok().put("rows", 0);
 
 
     }

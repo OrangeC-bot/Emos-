@@ -150,7 +150,7 @@
         </if>
     </select>
     <select id="searchCanCheckinMeeting" parameterType="HashMap" resultType="long">
-        SELECT COUNT (*)
+        SELECT COUNT(*)
         FROM tb_meeting
         WHERE id = #{meetingId}
         AND status IN( 3,4 )
@@ -163,7 +163,7 @@
         SET present = JSON_ARRAY_APPEND ( IFNULL( present, JSON_ARRAY ( ) ), '$', #{userId} )
         WHERE id = #{meetingId}
         AND NOW() >= DATE_SUB(CONCAT(date," ",`start`), INTERVAL 15 MINUTE)
-        AND NOW() &lt; DATE_SUB(CONC AT(date," ",`end`),INTERVAL 15 MINUTE)
+        AND NOW() &lt; DATE_SUB(CONCAT(date," ",`end`),INTERVAL 15 MINUTE)
         AND JSON_CONTAINS ( IFNULL( members, JSON_ARRAY ( ) ), CAST( #{userId} AS CHAR ) )
         AND NOT JSON_CONTAINS ( IFNULL( present, JSON_ARRAY ( ) ), CAST( #{userId} AS CHAR ) )
     </update>

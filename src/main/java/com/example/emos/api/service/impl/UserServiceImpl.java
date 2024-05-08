@@ -155,6 +155,12 @@ public class UserServiceImpl implements UserService {
         return list;
     }
 
+    @Override
+    public HashMap searchNameAndDept(int userId) {
+        HashMap map = userDao.searchNameAndDept(userId);
+        return map;
+    }
+
     private String getOpenId(String code) {
         String url = "https://api.weixin.qq.com/sns/jscode2session";
         HashMap map = new HashMap();

@@ -31,5 +31,6 @@ public interface UserService {
     public int update(HashMap param);
     public int deleteUserByIds(Integer[] ids);
     public ArrayList<String> searchUserRoles(int userId);
+    public HashMap searchNameAndDept(int userId);
 
 }
