@@ -11,5 +11,5 @@ public interface ApprovalService {
      * @param param 查询条件
      * @return 会议申请分页数据
      */
-    PageUtils searchTaskByPage(HashMap<String, Object> param);
+    public PageUtils searchTaskByPage(HashMap param);
 }

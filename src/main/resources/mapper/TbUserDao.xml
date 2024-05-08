@@ -131,13 +131,17 @@
             AND u.status=#{status}
         </if>
     </select>
-    <select id="searchUserRoles" parameterType="int" resultType="String">
-        SELECT
-            r.role_name AS roleName
-        FROM
-            tb_user u
-        JOIN tb_role r ON JSON_CONTAINS ( u.role, CONVERT ( r.id, CHAR ) )
-        WHERE u.id=#{userId}
+<!--    <select id="searchUserRoles" parameterType="int" resultType="String">-->
+<!--        SELECT-->
+<!--            r.role_name AS roleName-->
+<!--        FROM-->
+<!--            tb_user u-->
+<!--        JOIN tb_role r ON JSON_CONTAINS ( u.role, CONVERT ( r.id, CHAR ) )-->
+<!--        WHERE u.id=#{userId}-->
+<!--    </select>-->
+     <select id="searchUserRoles" parameterType="int" resultType="String">
+        SELECT role_name
+        FROM tb_role r JOIN tb_user u ON JSON_CONTAINS(u.role, CAST(r.id AS CHAR)) WHERE u.id = #{userId}
     </select>
      <select id="searchNameAndDept" parameterType="int" resultType="HashMap">
         SELECT u.name, d.dept_name AS dept
