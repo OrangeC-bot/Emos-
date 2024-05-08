@@ -103,6 +103,70 @@
         FROM tb_meeting m
         WHERE m.id = #{id}
     </select>
+    <select id="searchOnlineMeetingMembers" parameterType="HashMap" resultType="HashMap">
+        SELECT u.id,
+               u.name,
+               u.photo,
+               IF( u.id = #{userId}, 1, 0) AS mine
+        FROM tb_meeting m
+        JOIN tb_user u ON JSON_CONTAINS ( m.members, CAST( u.id AS CHAR ) )
+        WHERE m.id = #{meetingId} AND u.`status` = 1
+        ORDER BY mine DESC
+    </select>
+    <select id="searchOnlineMeetingByPage" parameterType="hashmap" resultType="hashmap">
+        SELECT m.id,
+        m.title,
+        u.name AS creatorName,
+        IF(creator_id = #{userId}, true, false) AS isCreator,
+        IF(JSON_CONTAINS(m.members, CAST(#{userId} AS CHAR)) = 1, true, false) AS mine,
+        m.date,
+        DATE_FORMAT(m.start, '%H:%i') AS start,
+        DATE_FORMAT(m.end, '%H:%i') AS end,
+        JSON_LENGTH(m.members) AS num,
+        m.status,
+        m.`desc`,
+        m.uuid,
+        m.instance_id AS instanceId
+        FROM tb_meeting m JOIN tb_user u ON m.creator_id = u.id
+        WHERE m.type = 1 AND m.status != 2
+        <if test="date != null">
+            AND m.date = #{date}
+        </if>
+        <if test="mold == '我的会议'">
+            AND JSON_CONTAINS(m.members, CAST(#{userId} AS CHAR))
+        </if>
+        ORDER BY m.id DESC
+        LIMIT #{start}, #{length}
+    </select>
+    <select id="searchOnlineMeetingCount" parameterType="HashMap" resultType="long">
+        SELECT COUNT(*)
+        FROM tb_meeting
+        WHERE type = 1 AND `status` != 2
+        <if test="date!=null">
+            AND date = #{date }
+        </if>
+        <if test="mold=='我的会议'">
+            AND JSON_CONTAINS(members, CAST(#{userId} AS CHAR))
+        </if>
+    </select>
+    <select id="searchCanCheckinMeeting" parameterType="HashMap" resultType="long">
+        SELECT COUNT (*)
+        FROM tb_meeting
+        WHERE id = #{meetingId}
+        AND status IN( 3,4 )
+        AND NOW() BETWEEN DATE_SUB(CONCAT(date," ",`start`),INTERVAL 15 MINUTE) AND DATE_ADD(CONCAT(date," ",`start`),INTERVAL 5 MINUTE)
+        AND JSON_CONTAINS ( IFNULL(members,JSON_ARRAY()), CAST( #{userId} AS CHAR ) )
+        AND NOT JSON_CONTAINS ( IFNULL(present,JSON_ARRAY()), CAST( #{userId} AS CHAR ) )
+    </select>
+    <update id="updateMeetingPresent" parameterType="HashMap">
+        UPDATE tb_meeting
+        SET present = JSON_ARRAY_APPEND ( IFNULL( present, JSON_ARRAY ( ) ), '$', #{userId} )
+        WHERE id = #{meetingId}
+        AND NOW() >= DATE_SUB(CONCAT(date," ",`start`), INTERVAL 15 MINUTE)
+        AND NOW() &lt; DATE_SUB(CONC AT(date," ",`end`),INTERVAL 15 MINUTE)
+        AND JSON_CONTAINS ( IFNULL( members, JSON_ARRAY ( ) ), CAST( #{userId} AS CHAR ) )
+        AND NOT JSON_CONTAINS ( IFNULL( present, JSON_ARRAY ( ) ), CAST( #{userId} AS CHAR ) )
+    </update>
     <update id="updateMeetingInstanceId" parameterType="hashmap">
         UPDATE tb_meeting SET instance_id = #{instanceId} WHERE uuid = #{uuid}
     </update>

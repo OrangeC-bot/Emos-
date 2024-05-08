@@ -13,6 +13,7 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.example.emos.api.common.util.PageUtils;
 import com.example.emos.api.common.util.R;
+import com.example.emos.api.config.tencent.TrtcUtil;
 import com.example.emos.api.controller.form.*;
 import com.example.emos.api.db.pojo.TbMeeting;
 import com.example.emos.api.service.MeetingService;
@@ -20,10 +21,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.ArrayList;
@@ -38,6 +37,10 @@ public class MeetingController {
 
     @Autowired
     private MeetingService meetingService;
+    @Autowired
+    private TrtcUtil trtcUtil;
+    @Value("${tencent.trtc.appId}")
+    private int appId;
 
     @PostMapping("/searchOfflineMeetingByPage")
     @Operation(summary = "分页查询线下会议信息")
@@ -159,5 +162,84 @@ public class MeetingController {
 
         int rows = meetingService.deleteMeetingApplication(param);
         return R.ok().put("rows", rows);
+    }
+
+    @PostMapping("/searchOnlineMeetingByPage")
+    @Operation(summary = "查询线上会议分页数据")
+    @SaCheckLogin
+    public R searchOnlineMeetingByPage(@Valid @RequestBody SearchOnlineMeetingByPageForm form){
+        //form{date, mold, page, length}
+
+        //算出start
+        int page = form.getPage();
+        int length = form.getLength();
+        int start = (page - 1) * length;
+
+        HashMap param = JSONUtil.parse(form).toBean(HashMap.class);
+        param.put("start", start);
+        param.put("userId", StpUtil.getLoginId());
+        PageUtils pageUtils= meetingService.searchOnlineMeetingByPage(param);
+        return R.ok().put("page",pageUtils);
+    }
+
+    @GetMapping("/searchMyUserSig")
+    @Operation(summary = "获取用户签名")
+    @SaCheckLogin
+    public R searchMyUserSig() {
+
+        int userId = StpUtil.getLoginIdAsInt();
+        String userSig = trtcUtil.genUserSig(userId + "");
+        return R.ok().put("userSig", userSig).put("userId", userId).put("appId", appId);
+
+    }
+
+    @PostMapping("/searchRoomIdByUUID")
+    @Operation(summary = "查询会议房间RoomId")
+    @SaCheckLogin
+    public R searchRoomIdByUUID(@Valid @RequestBody SearchRoomIdByUUIDForm form){
+
+        Long roomId = meetingService.searchRoomIdByUUID(form.getUuid());
+        return R.ok().put("roomId", roomId);
+    }
+
+    @PostMapping("/searchOnlineMeetingMembers")
+    @Operation(summary = "查询线上会议成员")
+    public R searchOnlineMeetingMembers(@Valid @RequestBody SearchOnlineMeetingMembersForm form){
+
+        HashMap param = JSONUtil.parse(form).toBean(HashMap.class);
+        //获取登录用户的userId
+        param.put("userId", StpUtil.getLoginIdAsInt());
+        //将条件信息meetingId和userId传到后端进行查询
+        ArrayList<HashMap> list = meetingService.searchOnlineMeetingMembers(param);
+        return R.ok().put("list", list);
+
+    }
+
+    @PostMapping("/updateMeetingPresent")
+    @Operation(summary = "执行会议签到")
+    @SaCheckLogin
+    public R updateMeetingPresent(@Valid @RequestBody UpdateMeetingPresentForm form){
+
+        HashMap param = new HashMap(){{
+
+            //给哈希变量param赋值meetingId和userId
+            put("meetingId", form.getMeetingId());
+            put("userId", StpUtil.getLoginIdAsInt());
+
+        }};
+
+        //判断查询的会议是否存在（会议状态为未进行或已开始）
+        boolean bool = meetingService.searchCanCheckinMeeting(param);
+        //如果会议状态符合未进行和已开始,则返回true，执行以下判断条件,返回更新的参会签到条数
+        if(bool){
+
+            int rows = meetingService.updateMeetingPresent(param);
+            return R.ok().put("rows", rows);
+
+        }
+        //否则返回0,表示更新人数为0，更新失败
+        return R.ok().put("rows", 0);
+
+
     }
 }

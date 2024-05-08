@@ -13,6 +13,7 @@ import com.example.emos.api.service.MeetingService;
 import com.example.emos.api.task.MeetingWorkflowTask;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -27,6 +28,8 @@ public class MeetingServiceImpl implements MeetingService {
 
     @Autowired
     private TbMeetingDao meetingDao;
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     @Override
     public PageUtils searchOfflineMeetingByPage(HashMap param) {
@@ -112,6 +115,66 @@ public class MeetingServiceImpl implements MeetingService {
             throw new EmosException("只能删除待审批和未开始的会议");
         }
 
+    }
+
+    /**
+     * 通过UUID查询存储在缓存中的roomId,但是只有在会议开始前20分钟，
+     * 工作流项目的定时器才会生成这个RoomID
+     * 用户在前端页面进入到meeting_video.vue页面之后，需要通过Ajax查询这个会议室的RoomID，
+     * 然后让TrtcClient连接到视频会议室
+     *
+     * @param uuid
+     * @return
+     */
+    @Override
+    public Long searchRoomIdByUUID(String uuid) {
+
+
+        if (redisTemplate.hasKey(uuid)) {
+            Object temp = redisTemplate.opsForValue().get(uuid);
+            long roomId = Long.parseLong(temp.toString());
+            return roomId;
+        }
+        return null;
+    }
+
+    @Override
+    public ArrayList<HashMap> searchOnlineMeetingMembers(HashMap param) {
+        ArrayList<HashMap> list = meetingDao.searchOnlineMeetingMembers(param);
+        return list;
+    }
+
+    @Override
+    public PageUtils searchOnlineMeetingByPage(HashMap param) {
+
+        //查询结果存储到list和count中
+        ArrayList<HashMap> list = meetingDao.searchOnlineMeetingByPage(param);
+        long count = meetingDao.searchOnlineMeetingCount(param);
+
+        int start = (Integer) param.get("start");
+        int length = (Integer) param.get("length");
+
+        //将数据存储到pageUtils中
+        PageUtils pageUtils = new PageUtils(list, count, start, length);
+
+        return pageUtils;
+    }
+
+    @Override
+    public long searchOnlineMeetingCount(HashMap param) {
+        return 0;
+    }
+
+    @Override
+    public boolean searchCanCheckinMeeting(HashMap param) {
+        long count = meetingDao.searchCanCheckinMeeting(param);
+        return count == 1 ? true: false;
+    }
+
+    @Override
+    public int updateMeetingPresent(HashMap param) {
+        int rows = meetingDao.updateMeetingPresent(param);
+        return rows;
     }
 
 

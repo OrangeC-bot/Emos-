@@ -18,4 +18,10 @@ public interface TbMeetingDao {
     public HashMap searchMeetingInfo(long id);
     public HashMap searchCurrentMeetingInfo(long id);
     public int deleteMeetingApplication(HashMap param);
+    public ArrayList<HashMap> searchOnlineMeetingByPage(HashMap param);
+    public ArrayList<HashMap> searchOnlineMeetingMembers(HashMap param);
+    public long searchOnlineMeetingCount(HashMap param);
+    public long searchCanCheckinMeeting(HashMap param);
+
+    public int updateMeetingPresent(HashMap param);
 }
